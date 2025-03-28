@@ -8,13 +8,25 @@ from tkinter.filedialog import askopenfilename,asksaveasfilename
 from os import path
 import wave
 from numpy.fft import fft
-from numpy import frombuffer,complex128
+from numpy import frombuffer,int16,nan
 from math import sqrt
 from subprocess import run, CREATE_NO_WINDOW
+from threading import Thread
 
 """
-Combine Audio, Animator & App
-Render video via: moviepy
+Coming soon:
+0.5: 
+    keybinds for [pivot, move, rotate, scale...]
+0.6:
+    add shake effect in bi
+0.7:
+    Write a particle system.
+    Particle system is affected by music peak.
+0.8:
+    Render video via: moviepy
+0.9:
+    maybe some fx stuff like: blur
+
 """
 
 BACKGROUND_COLOR = (36,36,36)
@@ -29,9 +41,7 @@ class Audio:
                  chunk:int=1024,
                  rate:int=192000,
                  channel:int=1,
-                 filename:str="",
-                 scale_value: float | int=720):
-        self.scale_value = scale_value
+                 filename:str="",):
         self.filename = filename
         self.chunk = chunk
         self.rate = rate
@@ -54,14 +64,20 @@ class Audio:
     def get_audio(self):
         
         if not self.frames:
+            self.convert()
             sF = wave.open(self.filename,'rb')
-            frames = [sF.readframes(self.chunk) for i in range(sF.getnframes()//self.chunk)]
+            frames = [sF.readframes(self.chunk) for i in range(sF.getnframes()//(self.chunk//60))]
             for buff in frames:
-                fft_complex = fft(frombuffer(buff, dtype=complex128), n=self.chunk)
+                fft_complex = fft(frombuffer(buff,int16), n=self.chunk//60)
                 s = 0
-                scale_value = self.scale_value / sqrt(max(v.real * v.real + v.imag * v.imag for v in fft_complex))
-                for v in fft_complex:s += sqrt(v.real * v.real + v.imag * v.imag) * scale_value
-                self.frames.append(fft_complex)
+                #scale_value = self.scale_value * sqrt(max(v.real * v.real + v.imag * v.imag for v in fft_complex))
+                for v in fft_complex:s += sqrt(v.real * v.real + v.imag * v.imag)
+                self.frames.append(s)
+            m = max(self.frames)
+            print(self.frames)
+            self.frames = [(int(buff) if buff != 0 else 0.00000000001) / m for buff in self.frames.copy()]
+            print(self.frames)
+                
         return self.frames
     
 
@@ -90,7 +106,12 @@ class Animator:
         self.music = None
         self.destination = None
     def smooth_resize(self,value: float):
-        self.fi_scale += value
+        """
+        !Smooth out sizes before rendering
+        """
+
+        self.fi_scale = value
+        
         self.fi_manipulated = pg.transform.scale_by(self.foreground_image,self.fi_scale)
         self.fi_pos = [640-(self.fi_manipulated.get_width()//2),360-(self.fi_manipulated.get_height()//2)]
     def show(self,app):
@@ -108,15 +129,22 @@ class App:
     is_running = True
     def __init__(self):
         self.animator = Animator()
+        self.audio = Audio(filename="E:\\musik\\sortiert\\Gamer_Musik\\Battlefield - Wenn nichts geht Song by Execute.mp3")
+        self.audio.get_audio()
     def run(self):
+        self.audio_pos = 0
         while self.is_running:
             start_time = perf_counter()
             self.window.fill(BACKGROUND_COLOR)
             self.update()
             self.check_events()
             self.delta_time = perf_counter() - start_time
+            
     def update(self):
-        self.animator.smooth_resize(.2*self.delta_time)
+        self.animator.smooth_resize(self.audio.frames[int(self.audio_pos*60)])
+        
+        self.audio_pos += self.delta_time
+        
         self.animator.show(self)
         pg.display.update()
     def check_events(self):
