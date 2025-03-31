@@ -8,11 +8,11 @@ from tkinter.filedialog import askopenfilename,asksaveasfilename
 from os import path
 import wave
 from numpy.fft import fft
-from numpy import frombuffer,int16,nan
+from numpy import frombuffer,int16
 from math import sqrt
 from subprocess import run, CREATE_NO_WINDOW
 from threading import Thread
-
+from json import load,dumps
 """
 Coming soon:
 0.5: 
@@ -30,6 +30,12 @@ Coming soon:
 """
 
 BACKGROUND_COLOR = (36,36,36)
+def get_music(title:str) -> str:
+    filepath = askopenfilename(title=title,filetypes=[("Music",(".mp3",".wav"))])
+    if path.isfile(filepath):
+        return filepath
+    return ""
+
 def get_image(title:str) -> pg.Surface:
     filepath = askopenfilename(title=title,filetypes=[("Images",(".png",".jpeg",".jpg",".webp"))])
     if path.isfile(filepath):
@@ -38,7 +44,7 @@ def get_image(title:str) -> pg.Surface:
 
 class Audio:
     def __init__(self,
-                 chunk:int=1024,
+                 chunk:int=1024//60,
                  rate:int=192000,
                  channel:int=1,
                  filename:str="",):
@@ -46,7 +52,27 @@ class Audio:
         self.chunk = chunk
         self.rate = rate
         self.channel = channel
-        self.frames = []
+        self.sF = wave.open(self.filename,'rb')
+        self.chz = self.sF.getframerate()//60
+        self.load()
+        
+    def load(self):
+        if self.filename.endswith(".mp3"):
+            f = self.filename.split(".mp3")[0]
+        if self.filename.endswith(".wav"):
+            f = self.filename.split(".wav")[0]
+        if path.isfile(f + ".pav"):
+            with open(f + ".pav","r") as f_in:
+                self.frames = load(f_in)
+        else:
+            self.frames = []
+    def save(self):
+        if self.filename.endswith(".mp3"):
+            f = self.filename.split(".mp3")[0]
+        if self.filename.endswith(".wav"):
+            f = self.filename.split(".wav")[0]
+        with open(f + ".pav","w") as f_out:
+            f_out.write(dumps(self.frames))
     def convert(self):
         if not self.filename.endswith(".wav"):
             run(
@@ -61,23 +87,23 @@ class Audio:
                     shell= True
                 )
             self.filename = self.filename.split(".")[0] + ".wav"
+            
+    def smooth_audio(self):
+        for idx in range(0,len(self.frames) - 1):
+            self.frames[idx] = sum(self.frames[idx:idx+60]) * .025
+
     def get_audio(self):
-        
+
         if not self.frames:
             self.convert()
-            sF = wave.open(self.filename,'rb')
-            frames = [sF.readframes(self.chunk) for i in range(sF.getnframes()//(self.chunk//60))]
-            for buff in frames:
-                fft_complex = fft(frombuffer(buff,int16), n=self.chunk//60)
-                s = 0
-                #scale_value = self.scale_value * sqrt(max(v.real * v.real + v.imag * v.imag for v in fft_complex))
-                for v in fft_complex:s += sqrt(v.real * v.real + v.imag * v.imag)
-                self.frames.append(s)
+
+            self.frames = [sum([sqrt(v.real * v.real + v.imag * v.imag) for v in fft(frombuffer(buff,int16)[0:440], n=self.chz)]) for buff in [self.sF.readframes(self.chz) for i in range(self.sF.getnframes()//(self.chz))]]
+
             m = max(self.frames)
-            print(self.frames)
             self.frames = [(int(buff) if buff != 0 else 0.00000000001) / m for buff in self.frames.copy()]
-            print(self.frames)
-                
+            self.smooth_audio()
+            self.save()
+        self.sF.close()
         return self.frames
     
 
@@ -103,7 +129,7 @@ class Animator:
         
         self.particle_effects = None
         self.particle_animation = None
-        self.music = None
+        self.music = get_music("BGM")
         self.destination = None
     def smooth_resize(self,value: float):
         """
@@ -129,10 +155,14 @@ class App:
     is_running = True
     def __init__(self):
         self.animator = Animator()
-        self.audio = Audio(filename="E:\\musik\\sortiert\\Gamer_Musik\\Battlefield - Wenn nichts geht Song by Execute.mp3")
+        self.audio = Audio(filename=self.animator.music)
         self.audio.get_audio()
     def run(self):
         self.audio_pos = 0
+        if self.animator.music:
+            pg.mixer.init()
+            pg.mixer.music.load(self.animator.music)
+            pg.mixer.music.play()
         while self.is_running:
             start_time = perf_counter()
             self.window.fill(BACKGROUND_COLOR)
@@ -141,9 +171,9 @@ class App:
             self.delta_time = perf_counter() - start_time
             
     def update(self):
-        self.animator.smooth_resize(self.audio.frames[int(self.audio_pos*60)])
+        self.animator.smooth_resize(self.audio.frames[int(pg.mixer.music.get_pos()*0.01666)] *.5)
+        print(pg.mixer.music.get_pos()*.01666)
         
-        self.audio_pos += self.delta_time
         
         self.animator.show(self)
         pg.display.update()
