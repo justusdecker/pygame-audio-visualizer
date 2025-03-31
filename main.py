@@ -11,8 +11,10 @@ from numpy.fft import fft
 from numpy import frombuffer,int16
 from math import sqrt
 from subprocess import run, CREATE_NO_WINDOW
-from threading import Thread
 from json import load,dumps
+
+import pygame_gui as pgg
+
 """
 Coming soon:
 0.5: 
@@ -44,16 +46,16 @@ def get_image(title:str) -> pg.Surface:
 
 class Audio:
     def __init__(self,
-                 chunk:int=1024//60,
-                 rate:int=192000,
-                 channel:int=1,
+                 frequencys: tuple[int,int] = (0,440),
+                 resize_value: float = .125,
+                 smoothness: int = 15,
                  filename:str="",):
+        self.frequencys = frequencys
+        self.resize_value = resize_value
+        self.audio_smoothness = smoothness
         self.filename = filename
-        self.chunk = chunk
-        self.rate = rate
-        self.channel = channel
         self.sF = wave.open(self.filename,'rb')
-        self.chz = self.sF.getframerate()//60
+        self.chz = int(self.sF.getframerate()*.01666)
         self.load()
         
     def load(self):
@@ -90,14 +92,14 @@ class Audio:
             
     def smooth_audio(self):
         for idx in range(0,len(self.frames) - 1):
-            self.frames[idx] = sum(self.frames[idx:idx+60]) * .025
+            self.frames[idx] = sum(self.frames[idx:idx+self.audio_smoothness]) * self.resize_value
 
     def get_audio(self):
 
         if not self.frames:
             self.convert()
 
-            self.frames = [sum([sqrt(v.real * v.real + v.imag * v.imag) for v in fft(frombuffer(buff,int16)[0:440], n=self.chz)]) for buff in [self.sF.readframes(self.chz) for i in range(self.sF.getnframes()//(self.chz))]]
+            self.frames = [sum([sqrt(v.real * v.real + v.imag * v.imag) for v in fft(frombuffer(buff,int16)[self.frequencys[0] if self.frequencys[0] < self.chz else 0:self.frequencys[1] if self.frequencys[1] < self.chz else 440], n=self.chz)]) for buff in [self.sF.readframes(self.chz) for i in range(self.sF.getnframes()//(self.chz))]]
 
             m = max(self.frames)
             self.frames = [(int(buff) if buff != 0 else 0.00000000001) / m for buff in self.frames.copy()]
@@ -108,7 +110,8 @@ class Audio:
     
 
 class Animator:
-    def __init__(self):
+    def __init__(self,app):
+        self.app = app
         self.background_image = get_image("Background image")
         self.foreground_image = get_image("Foreground image")
         
@@ -139,10 +142,11 @@ class Animator:
         self.fi_scale = value
         
         self.fi_manipulated = pg.transform.scale_by(self.foreground_image,self.fi_scale)
-        self.fi_pos = [640-(self.fi_manipulated.get_width()//2),360-(self.fi_manipulated.get_height()//2)]
-    def show(self,app):
-        app.window.blit(self.bi_manipulated,self.bi_pos)
-        app.window.blit(self.fi_manipulated,self.fi_pos)
+        self.fi_pos = [(self.app.width//2)-(self.fi_manipulated.get_width()//2),(self.app.height//2)-(self.fi_manipulated.get_height()//2)]
+    def show(self):
+        self.app.main_surface.blit(self.bi_manipulated,self.bi_pos)
+        self.app.main_surface.blit(self.fi_manipulated,self.fi_pos)
+        self.app.window.blit(self.app.main_surface,(0,0))
     def render(self):
         pass
 
@@ -152,9 +156,10 @@ class App:
     width = 1280
     height = 720
     window = pg.display.set_mode((width,height))
+    main_surface = pg.Surface((width*2,height*2))
     is_running = True
     def __init__(self):
-        self.animator = Animator()
+        self.animator = Animator(self)
         self.audio = Audio(filename=self.animator.music)
         self.audio.get_audio()
     def run(self):
@@ -165,22 +170,25 @@ class App:
             pg.mixer.music.play()
         while self.is_running:
             start_time = perf_counter()
-            self.window.fill(BACKGROUND_COLOR)
+            self.main_surface.fill(BACKGROUND_COLOR)
             self.update()
             self.check_events()
             self.delta_time = perf_counter() - start_time
-            
+        pg.quit()  
     def update(self):
-        self.animator.smooth_resize(self.audio.frames[int(pg.mixer.music.get_pos()*0.01666)] *.5)
-        print(pg.mixer.music.get_pos()*.01666)
+        pos = int(((pg.mixer.music.get_pos()*.001) / (len(self.audio.frames)*.0166)) * len(self.audio.frames))
+        if pos < len(self.audio.frames):
+            self.animator.smooth_resize(self.audio.frames[pos] *.03)
+        else:
+            self.is_running = False
+        #print(len(self.audio.frames)*.0166,f"{(pg.mixer.music.get_pos()*.001):.2f}",((pg.mixer.music.get_pos()*.001) / (len(self.audio.frames)*.0166)) * len(self.audio.frames))
         
         
-        self.animator.show(self)
+        self.animator.show()
         pg.display.update()
     def check_events(self):
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                pg.quit()
                 self.is_running = False
                 
 if __name__ == "__main__":
