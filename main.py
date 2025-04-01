@@ -58,8 +58,8 @@ class App:
                 if event.ui_element == self.ui_elements.preview_button:
                     if self.animator.music is not None and self.animator.foreground_image is not None \
                         and self.animator.background_image is not None:
-                        
-                        self.audio = Audio(self.animator.music)
+                        self.animator.set_values()
+                        self.audio = Audio(filename=self.animator.music)
                         self.audio.open()
                         self.audio.get_audio()
                         self.playing = True

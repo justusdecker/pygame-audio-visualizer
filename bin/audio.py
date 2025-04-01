@@ -25,6 +25,7 @@ class Audio:
     def get_end(self):
         return self.filename[-4:]
     def get_path_wo_ext(self):
+        print(self.get_end(),self.filename)
         end = self.get_end()
         print(self.filename.split(end)[0])
         return self.filename.split(end)[0] if end else ""
