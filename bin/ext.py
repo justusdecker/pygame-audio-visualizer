@@ -13,7 +13,14 @@ from bin.gui import GUI
 from bin.animator import Animator
 from bin.audio import Audio
 pg.init()
-
+def get_str2int(text:str,default:int) -> int:
+    if text:
+        if text.isdecimal():
+            return int(text)
+        if text[0] == "-" and text.count("-") == 1:
+            return -int(text[1:])
+    
+    return default
 def get_str2float(text:str,default:float = 0.) -> float:
     if not text: return default
     if text.count(".") > 1: return default

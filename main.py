@@ -64,6 +64,7 @@ class App:
                         and self.animator.background_image is not None:
                         self.animator.set_values()
                         resize, smoothness = get_str2float(self.ui_elements.resize_val_input.text,.125),get_str2float(self.ui_elements.smoothness_input.text,15)
+                        self.animator.offset = [get_str2int(self.ui_elements.pos_input_x.text,0),get_str2int(self.ui_elements.pos_input_y.text,0)]
                         self.audio = Audio(
                             resize_value=resize,
                             smoothness=smoothness,
