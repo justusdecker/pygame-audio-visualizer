@@ -2,47 +2,8 @@
 (c) 2025 - The PAV Project by Justus Decker
 Documentation is coming soon!
 """
-import pygame as pg
-from time import perf_counter
-from tkinter.filedialog import askopenfilename,asksaveasfilename
-from os import path
-import wave
-from numpy.fft import fft
-from numpy import frombuffer,int16
-from math import sqrt
-from subprocess import run, CREATE_NO_WINDOW
-from json import load,dumps
+from bin.ext import *
 
-import pygame_gui as pgg
-
-"""
-Coming soon:
-0.5: 
-    keybinds for [pivot, move, rotate, scale...]
-0.6:
-    add shake effect in bi
-0.7:
-    Write a particle system.
-    Particle system is affected by music peak.
-0.8:
-    Render video via: moviepy
-0.9:
-    maybe some fx stuff like: blur
-
-"""
-
-BACKGROUND_COLOR = (36,36,36)
-def get_music(title:str) -> str:
-    filepath = askopenfilename(title=title,filetypes=[("Music",(".mp3",".wav"))])
-    if path.isfile(filepath):
-        return filepath
-    return ""
-
-def get_image(title:str) -> pg.Surface:
-    filepath = askopenfilename(title=title,filetypes=[("Images",(".png",".jpeg",".jpg",".webp"))])
-    if path.isfile(filepath):
-        return pg.image.load(filepath)
-    return pg.Surface((1,1),pg.SRCALPHA)
 
 class Audio:
     def __init__(self,
@@ -108,7 +69,6 @@ class Audio:
         self.sF.close()
         return self.frames
     
-
 class Animator:
     def __init__(self,app):
         self.app = app
@@ -121,7 +81,7 @@ class Animator:
         self.bi_scale = 1.
         self.fi_scale = 1.
         
-        self.fi_pos = [640-(self.foreground_image.get_width()//2),360-(self.foreground_image.get_height()//2)]
+        self.fi_pos = [(self.app.width//2)-(self.foreground_image.get_width()//2),(self.app.height//2)-(self.foreground_image.get_height()//2)]
         self.bi_pos = [0,0]
         
         self.bi_rot = 0
@@ -135,20 +95,16 @@ class Animator:
         self.music = get_music("BGM")
         self.destination = None
     def smooth_resize(self,value: float):
-        """
-        !Smooth out sizes before rendering
-        """
-
         self.fi_scale = value
-        
         self.fi_manipulated = pg.transform.scale_by(self.foreground_image,self.fi_scale)
-        self.fi_pos = [(self.app.width//2)-(self.fi_manipulated.get_width()//2),(self.app.height//2)-(self.fi_manipulated.get_height()//2)]
+        self.fi_pos = [
+            (self.app.width//2)-(self.fi_manipulated.get_width()//2),
+            (self.app.height//2)-(self.fi_manipulated.get_height()//2)
+            ]
     def show(self):
         self.app.main_surface.blit(self.bi_manipulated,self.bi_pos)
         self.app.main_surface.blit(self.fi_manipulated,self.fi_pos)
         self.app.window.blit(self.app.main_surface,(0,0))
-    def render(self):
-        pass
 
 class App:
     delta_time = 0
@@ -157,7 +113,17 @@ class App:
     height = 720
     window = pg.display.set_mode((width,height))
     main_surface = pg.Surface((width*2,height*2))
+    manager = pgg.UIManager((width,height),)
+    
     is_running = True
+    quarter_screen_width = int(width * .25)
+    
+    fil = pgg.elements.UIButton(pg.Rect(0,0,quarter_screen_width,32),"Foreground Image load",manager)
+    bil = pgg.elements.UIButton(pg.Rect(0,0,quarter_screen_width,32),"Background Image load",manager)
+    mil = pgg.elements.UIButton(pg.Rect(0,0,quarter_screen_width,32),"Music load",manager)
+    
+    
+    
     def __init__(self):
         self.animator = Animator(self)
         self.audio = Audio(filename=self.animator.music)
@@ -173,23 +139,26 @@ class App:
             self.main_surface.fill(BACKGROUND_COLOR)
             self.update()
             self.check_events()
+            pg.display.update()
             self.delta_time = perf_counter() - start_time
         pg.quit()  
     def update(self):
-        pos = int(((pg.mixer.music.get_pos()*.001) / (len(self.audio.frames)*.0166)) * len(self.audio.frames))
-        if pos < len(self.audio.frames):
-            self.animator.smooth_resize(self.audio.frames[pos] *.03)
-        else:
-            self.is_running = False
-        #print(len(self.audio.frames)*.0166,f"{(pg.mixer.music.get_pos()*.001):.2f}",((pg.mixer.music.get_pos()*.001) / (len(self.audio.frames)*.0166)) * len(self.audio.frames))
+        pos = int(((self.audio_pos) / (len(self.audio.frames)*.0166)) * len(self.audio.frames))
         
-        
+        if pos >= len(self.audio.frames): self.is_running = False ; return
+
+        self.animator.smooth_resize(self.audio.frames[pos] *.03)
+        self.audio_pos += self.delta_time
         self.animator.show()
-        pg.display.update()
+        
     def check_events(self):
+        
         for event in pg.event.get():
+            self.manager.process_events(event)
             if event.type == pg.QUIT:
                 self.is_running = False
+        self.manager.update(self.delta_time)
+        self.manager.draw_ui(self.window)
                 
 if __name__ == "__main__":
     App().run()
