@@ -106,6 +106,7 @@ class Animator:
         self.app.main_surface.blit(self.fi_manipulated,self.fi_pos)
         self.app.window.blit(self.app.main_surface,(0,0))
 
+
 class App:
     delta_time = 0
     clock = pg.Clock()
@@ -114,16 +115,11 @@ class App:
     window = pg.display.set_mode((width,height))
     main_surface = pg.Surface((width*2,height*2))
     manager = pgg.UIManager((width,height),)
-    
+
     is_running = True
     quarter_screen_width = int(width * .25)
-    
-    fil = pgg.elements.UIButton(pg.Rect(0,0,quarter_screen_width,32),"Foreground Image load",manager)
-    bil = pgg.elements.UIButton(pg.Rect(0,0,quarter_screen_width,32),"Background Image load",manager)
-    mil = pgg.elements.UIButton(pg.Rect(0,0,quarter_screen_width,32),"Music load",manager)
-    
-    
-    
+    ui_elements = GUI(quarter_screen_width,manager)
+
     def __init__(self):
         self.animator = Animator(self)
         self.audio = Audio(filename=self.animator.music)

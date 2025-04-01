@@ -9,6 +9,7 @@ from math import sqrt
 from subprocess import run, CREATE_NO_WINDOW
 from json import load,dumps
 import pygame_gui as pgg
+from bin.gui import GUI
 pg.init()
 
 def get_music(title:str) -> str:
