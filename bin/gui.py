@@ -27,6 +27,11 @@ class GUI:
         self.smoothness_input.set_allowed_characters([i for i in"1234567890."])
         self.resize_val_input.set_allowed_characters([i for i in"1234567890."])
         
-        self.preview_button = UIButton(Rect(0,192,quarter_screen_width,32),"Preview Video",manager)
-        self.render_button = UIButton(Rect(0,224,quarter_screen_width,32),"Render Video",manager)
+        self.frq_min = UITextEntryLine(Rect(0,192,quarter_screen_width//2,32),manager,placeholder_text="pivot x")
+        self.frq_max = UITextEntryLine(Rect(quarter_screen_width//2,192,quarter_screen_width//2,32),manager,placeholder_text="pivot y")
+        self.pivot_input_x.set_allowed_characters([i for i in"1234567890"])
+        self.pivot_input_y.set_allowed_characters([i for i in"1234567890"])
+        
+        self.preview_button = UIButton(Rect(0,124,quarter_screen_width,32),"Preview Video",manager)
+        self.render_button = UIButton(Rect(0,256,quarter_screen_width,32),"Render Video",manager)
         self.render_button.disable()

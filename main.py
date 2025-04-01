@@ -56,20 +56,27 @@ class App:
                 if event.ui_element == self.ui_elements.mil:
                     self.animator.music = get_music("BGM")
                 if event.ui_element == self.ui_elements.preview_button:
+                    if pg.mixer.music.get_busy():
+                        pg.mixer.music.stop()
+                        self.playing = False
+                        continue
                     if self.animator.music is not None and self.animator.foreground_image is not None \
                         and self.animator.background_image is not None:
                         self.animator.set_values()
-                        self.audio = Audio(filename=self.animator.music)
+                        resize, smoothness = get_str2float(self.ui_elements.resize_val_input.text,.125),get_str2float(self.ui_elements.smoothness_input.text,15)
+                        self.audio = Audio(
+                            resize_value=resize,
+                            smoothness=smoothness,
+                            filename=self.animator.music
+                            )
                         self.audio.open()
                         self.audio.get_audio()
                         self.playing = True
                         pg.mixer.init()
                         pg.mixer.music.load(self.animator.music)
                         pg.mixer.music.play()
-                    else:
-                        if pg.mixer.music.get_busy():
-                            pg.mixer.music.stop()
-                        self.playing = False
+
+                        
         self.manager.update(self.delta_time)
         self.manager.draw_ui(self.window)
                 

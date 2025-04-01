@@ -14,6 +14,11 @@ from bin.animator import Animator
 from bin.audio import Audio
 pg.init()
 
+def get_str2float(text:str,default:float = 0.) -> float:
+    if not text: return default
+    if text.count(".") > 1: return default
+    return float(text)
+
 def get_music(title:str) -> str:
     filepath = askopenfilename(title=title,filetypes=[("Music",(".mp3",".wav"))])
     if path.isfile(filepath):
