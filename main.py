@@ -4,13 +4,6 @@ Documentation is coming soon!
 """
 from bin.ext import *
 
-"""
-after preview press:
-    -Music play
-    -update fg and bg after 
-"""
-
-
 class App:
     delta_time = 0
     clock = pg.Clock()
@@ -23,7 +16,7 @@ class App:
     is_running = True
     quarter_screen_width = int(width * .25)
     ui_elements = GUI(quarter_screen_width,manager)
-
+    resize = .03
     def __init__(self):
         self.animator = Animator(self)
 
@@ -39,7 +32,7 @@ class App:
         pg.quit()  
     def update(self):
         if self.playing:
-            self.animator.smooth_resize(.03,self.delta_time,self.audio.frames)
+            self.animator.smooth_resize(self.resize,self.delta_time,self.audio.frames)
             self.animator.show()
         
     def check_events(self):
@@ -64,13 +57,17 @@ class App:
                         and self.animator.background_image is not None:
                         self.animator.set_values()
                         resize, smoothness = get_str2float(self.ui_elements.resize_val_input.text,.125),get_str2float(self.ui_elements.smoothness_input.text,15)
+                        freqs = get_str2float(self.ui_elements.frq_min.text,0),get_str2float(self.ui_elements.frq_max.text,440)
                         self.animator.offset = [get_str2int(self.ui_elements.pos_input_x.text,0),get_str2int(self.ui_elements.pos_input_y.text,0)]
+                        print(resize)
                         self.audio = Audio(
+                            frequencys=freqs,
                             resize_value=resize,
                             smoothness=smoothness,
                             filename=self.animator.music
                             )
                         self.audio.open()
+                        self.audio.frames = []
                         self.audio.get_audio()
                         self.playing = True
                         pg.mixer.init()

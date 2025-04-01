@@ -32,7 +32,7 @@ class Animator:
         
         self.destination = None
     def smooth_resize(self,scale: float,dt:float,frames:list[float]):
-        print(self.offset)
+
         pos = int(((self.audio_pos) / (len(frames)*.0166)) * len(frames))
         
         if pos >= len(frames): return

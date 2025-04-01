@@ -11,12 +11,15 @@ class GUI:
         self.output_res_input_h = UITextEntryLine(Rect(quarter_screen_width//2,96,quarter_screen_width//2,32),manager,placeholder_text="height")
         self.output_res_input_w.set_allowed_characters([i for i in"1234567890"])
         self.output_res_input_h.set_allowed_characters([i for i in"1234567890"])
+        self.output_res_input_w.disable()
+        self.output_res_input_h.disable()
         
         self.pivot_input_x = UITextEntryLine(Rect(0,128,quarter_screen_width//2,32),manager,placeholder_text="pivot x")
         self.pivot_input_y = UITextEntryLine(Rect(quarter_screen_width//2,128,quarter_screen_width//2,32),manager,placeholder_text="pivot y")
         self.pivot_input_x.set_allowed_characters([i for i in"1234567890"])
         self.pivot_input_y.set_allowed_characters([i for i in"1234567890"])
-        
+        self.pivot_input_x.disable()
+        self.pivot_input_y.disable()
         self.pos_input_x = UITextEntryLine(Rect(0,160,quarter_screen_width//2,32),manager,placeholder_text="position x")
         self.pos_input_y = UITextEntryLine(Rect(quarter_screen_width//2,160,quarter_screen_width//2,32),manager,placeholder_text="position y")
         self.pos_input_x.set_allowed_characters([i for i in"1234567890-"])
