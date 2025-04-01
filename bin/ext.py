@@ -11,6 +11,7 @@ from json import load,dumps
 import pygame_gui as pgg
 from bin.gui import GUI
 from bin.animator import Animator
+from bin.audio import Audio
 pg.init()
 
 def get_music(title:str) -> str:
