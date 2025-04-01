@@ -4,6 +4,11 @@ Documentation is coming soon!
 """
 from bin.ext import *
 
+"""
+after preview press:
+    -Music play
+    -update fg and bg after 
+"""
 
 class Audio:
     def __init__(self,
@@ -15,25 +20,27 @@ class Audio:
         self.resize_value = resize_value
         self.audio_smoothness = smoothness
         self.filename = filename
-        self.sF = wave.open(self.filename,'rb')
-        self.chz = int(self.sF.getframerate()*.01666)
+        self.open()
         self.load()
-        
+    def open(self):
+        if self.filename is None: self.filename = ""
+        if self.filename:
+            self.sF = wave.open(self.filename,'rb')
+            self.chz = int(self.sF.getframerate()*.01666)
+    def get_end(self):
+        return self.filename[-4:]
+    def get_path_wo_ext(self):
+
+        return self.filename.split(self.get_end())[0]
     def load(self):
-        if self.filename.endswith(".mp3"):
-            f = self.filename.split(".mp3")[0]
-        if self.filename.endswith(".wav"):
-            f = self.filename.split(".wav")[0]
+        f = self.get_path_wo_ext()
         if path.isfile(f + ".pav"):
             with open(f + ".pav","r") as f_in:
                 self.frames = load(f_in)
         else:
             self.frames = []
     def save(self):
-        if self.filename.endswith(".mp3"):
-            f = self.filename.split(".mp3")[0]
-        if self.filename.endswith(".wav"):
-            f = self.filename.split(".wav")[0]
+        f = self.get_path_wo_ext()
         with open(f + ".pav","w") as f_out:
             f_out.write(dumps(self.frames))
     def convert(self):
@@ -68,43 +75,6 @@ class Audio:
             self.save()
         self.sF.close()
         return self.frames
-    
-class Animator:
-    def __init__(self,app):
-        self.app = app
-        self.background_image = get_image("Background image")
-        self.foreground_image = get_image("Foreground image")
-        
-        self.fi_manipulated = self.foreground_image.copy()
-        self.bi_manipulated = self.background_image.copy()
-        
-        self.bi_scale = 1.
-        self.fi_scale = 1.
-        
-        self.fi_pos = [(self.app.width//2)-(self.foreground_image.get_width()//2),(self.app.height//2)-(self.foreground_image.get_height()//2)]
-        self.bi_pos = [0,0]
-        
-        self.bi_rot = 0
-        self.fi_rot = 0
-        
-        self.fi_pivot = self.fi_pos.copy()
-        self.bi_pivot = self.bi_pos.copy()
-        
-        self.particle_effects = None
-        self.particle_animation = None
-        self.music = get_music("BGM")
-        self.destination = None
-    def smooth_resize(self,value: float):
-        self.fi_scale = value
-        self.fi_manipulated = pg.transform.scale_by(self.foreground_image,self.fi_scale)
-        self.fi_pos = [
-            (self.app.width//2)-(self.fi_manipulated.get_width()//2),
-            (self.app.height//2)-(self.fi_manipulated.get_height()//2)
-            ]
-    def show(self):
-        self.app.main_surface.blit(self.bi_manipulated,self.bi_pos)
-        self.app.main_surface.blit(self.fi_manipulated,self.fi_pos)
-        self.app.window.blit(self.app.main_surface,(0,0))
 
 
 class App:
@@ -139,11 +109,7 @@ class App:
             self.delta_time = perf_counter() - start_time
         pg.quit()  
     def update(self):
-        pos = int(((self.audio_pos) / (len(self.audio.frames)*.0166)) * len(self.audio.frames))
-        
-        if pos >= len(self.audio.frames): self.is_running = False ; return
-
-        self.animator.smooth_resize(self.audio.frames[pos] *.03)
+        self.animator.smooth_resize(.03,self.delta_time,self.audio.frames)
         self.audio_pos += self.delta_time
         self.animator.show()
         
@@ -153,6 +119,14 @@ class App:
             self.manager.process_events(event)
             if event.type == pg.QUIT:
                 self.is_running = False
+            if event.type == pgg.UI_BUTTON_PRESSED:
+                if event.ui_element == self.ui_elements.bil:
+                    self.animator.background_image = get_image("Background image")
+                if event.ui_element == self.ui_elements.fil:
+                    self.animator.foreground_image = get_image("Foreground image")
+                if event.ui_element == self.ui_elements.mil:
+                    self.animator.music = get_image("BGM")
+                    self.audio = Audio()
         self.manager.update(self.delta_time)
         self.manager.draw_ui(self.window)
                 
