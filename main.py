@@ -19,8 +19,6 @@ class App:
     resize = .03
     def __init__(self):
         self.animator = Animator(self)
-
-        
     def run(self):
         while self.is_running:
             start_time = perf_counter()

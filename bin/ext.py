@@ -22,6 +22,7 @@ def get_str2int(text:str,default:int) -> int:
             return -int(text[1:])
     
     return default
+
 def get_str2float(text:str,default:float = 0.) -> float:
     print(not text,text.isdecimal(),text.count(".") > 1,text)
     if not text: return default
